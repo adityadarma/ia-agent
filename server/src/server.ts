@@ -13,6 +13,9 @@ const limiter = rateLimit({
 
 const app = express()
 
+// Trust the first proxy (required for rate limiting behind reverse proxies)
+app.set('trust proxy', 1)
+
 if (!process.env.API_KEY) {
   console.error('FATAL: API_KEY environment variable is not set!')
   process.exit(1)
