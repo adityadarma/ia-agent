@@ -15,11 +15,12 @@ export async function streamLLM(
       stream: true,
       temperature: 0.1,
       options: {
-        num_predict: 512,      // max token output
+        num_predict: 256,      // max token output
         temperature: 0.3,      // lebih deterministik
         top_k: 40,
         top_p: 0.9,
-        repeat_penalty: 1.1
+        repeat_penalty: 1.1,
+        num_ctx: 2048
       }
     },
     { responseType: 'stream' }
