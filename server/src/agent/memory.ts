@@ -2,10 +2,10 @@ import Redis from 'ioredis'
 
 const redis = new Redis({
   host: process.env.REDIS_HOST || 'redis',
-  port: 6379
+  port: parseInt(process.env.REDIS_PORT || '6379', 10)
 })
 
-const MAX_HISTORY = 3
+const MAX_HISTORY = 5 // Balanced for 8GB RAM
 
 export async function appendMemory(sessionId: string, message: string) {
   await redis.lpush(sessionId, message)

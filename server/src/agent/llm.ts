@@ -10,17 +10,17 @@ export async function streamLLM(
   const response = await axios.post(
     `${OLLAMA_URL}/api/generate`,
     {
-      model: 'deepseek-coder:1.3b',
+      model: process.env.OLLAMA_MODEL || 'qwen2.5-coder:3b',
       prompt,
       stream: true,
-      temperature: 0.1,
       options: {
-        num_predict: 256,      // max token output
-        temperature: 0.3,      // lebih deterministik
+        num_predict: parseInt(process.env.OLLAMA_NUM_PREDICT || '2048', 10),
+        temperature: 0.3,
         top_k: 40,
         top_p: 0.9,
         repeat_penalty: 1.1,
-        num_ctx: 2048
+        num_ctx: parseInt(process.env.OLLAMA_CONTEXT_LENGTH || '2048', 10),
+        num_thread: 4
       }
     },
     { responseType: 'stream' }

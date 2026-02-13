@@ -1,6 +1,7 @@
 import { readFileTool } from './readFile.js'
 import { writeFileTool } from './writeFile.js'
 import { searchCodeTool } from './searchCode.js'
+import { listFilesTool } from './listFiles.js'
 import { ToolInputMap } from './types.js'
 
 export const tools: {
@@ -10,7 +11,8 @@ export const tools: {
 } = {
   readFile: readFileTool,
   writeFile: writeFileTool,
-  searchCode: searchCodeTool
+  searchCode: searchCodeTool,
+  listFiles: listFilesTool
 }
 
 export type ToolName = keyof ToolInputMap

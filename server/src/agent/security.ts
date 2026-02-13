@@ -1,6 +1,6 @@
 import path from 'path'
 
-const PROJECT_ROOT = path.resolve('/app/workspace')
+const PROJECT_ROOT = process.env.WORKSPACE_ROOT || path.resolve('/app/workspace')
 const ALLOWED_EXTENSIONS = ['.ts', '.js', '.json', '.md']
 
 export function resolveSafePath(inputPath: string): string {

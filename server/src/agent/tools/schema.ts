@@ -18,8 +18,14 @@ export const writeFileSchema = z.object({
   })
 })
 
+export const listFilesSchema = z.object({
+  tool: z.literal('listFiles'),
+  input: z.string()
+})
+
 export const toolCallSchema = z.union([
   readFileSchema,
   searchCodeSchema,
-  writeFileSchema
+  writeFileSchema,
+  listFilesSchema
 ])

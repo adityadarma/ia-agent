@@ -1,3 +1,6 @@
 export function logToolCall(tool: string, input: any) {
-  console.log(`[TOOL CALL] ${tool}`, input)
+  const timestamp = new Date().toISOString()
+  const inputStr = typeof input === 'string' ? input : JSON.stringify(input, null, 2)
+  console.log(`\n[${timestamp}] 🔧 TOOL CALL: ${tool}`)
+  console.log(`Input: ${inputStr}\n`)
 }
