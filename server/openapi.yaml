@@ -1,0 +1,340 @@
+openapi: 3.1.0
+info:
+  title: AI Agent – OpenAI-compatible API
+  description: |
+    Self-hosted AI agent running on Ollama.
+    Drop-in replacement for the OpenAI API — compatible with
+    **Claude Code**, **OpenCode**, **Continue**, **Cursor**, and any
+    OpenAI SDK client.
+
+    ## Authentication
+    Pass your API key as a Bearer token:
+    ```
+    Authorization: Bearer <API_KEY>
+    ```
+    or as a header:
+    ```
+    x-api-key: <API_KEY>
+    ```
+
+    ## Usage with Claude Code
+    ```bash
+    ANTHROPIC_BASE_URL=http://<host>:3000 \
+    ANTHROPIC_API_KEY=<API_KEY> \
+    claude
+    ```
+    > Note: Claude Code can also be pointed at an OpenAI-compatible endpoint
+    > via the `OPENAI_BASE_URL` env var in supported versions.
+
+    ## Usage with Continue (VS Code extension)
+    Add to `~/.continue/config.json`:
+    ```json
+    {
+      "models": [{
+        "title": "Local AI Agent",
+        "provider": "openai",
+        "model": "gemma4:e4b",
+        "apiBase": "http://<host>:3000/v1",
+        "apiKey": "<API_KEY>"
+      }]
+    }
+    ```
+
+    ## Usage with OpenCode
+    ```bash
+    OPENAI_BASE_URL=http://<host>:3000/v1 \
+    OPENAI_API_KEY=<API_KEY> \
+    opencode
+    ```
+  version: 1.0.0
+  contact:
+    name: AI Agent Server
+
+servers:
+  - url: /v1
+    description: Local AI Agent
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: x-api-key
+
+  schemas:
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant, tool]
+        content:
+          type: [string, "null"]
+          description: Message content (null when tool_calls is present)
+        name:
+          type: string
+        tool_call_id:
+          type: string
+        tool_calls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCall'
+
+    ToolCall:
+      type: object
+      required: [id, type, function]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [function]
+        function:
+          type: object
+          required: [name, arguments]
+          properties:
+            name:
+              type: string
+            arguments:
+              type: string
+              description: JSON-encoded arguments
+
+    Tool:
+      type: object
+      required: [type, function]
+      properties:
+        type:
+          type: string
+          enum: [function]
+        function:
+          type: object
+          required: [name]
+          properties:
+            name:
+              type: string
+            description:
+              type: string
+            parameters:
+              type: object
+              description: JSON Schema for function arguments
+
+    ChatCompletionRequest:
+      type: object
+      required: [messages]
+      properties:
+        model:
+          type: string
+          default: qwen2.5-coder:3b
+          description: Ollama model name (must be pulled in Ollama)
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+        stream:
+          type: boolean
+          default: false
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+          default: 0.3
+        max_tokens:
+          type: integer
+          default: 2048
+        top_p:
+          type: number
+          default: 0.9
+        stop:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tool'
+        tool_choice:
+          oneOf:
+            - type: string
+              enum: [none, auto]
+            - type: object
+
+    ChatCompletionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+          enum: [chat.completion]
+        created:
+          type: integer
+        model:
+          type: string
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+              message:
+                $ref: '#/components/schemas/ChatMessage'
+              finish_reason:
+                type: string
+                enum: [stop, length, tool_calls]
+        usage:
+          type: object
+          properties:
+            prompt_tokens:
+              type: integer
+            completion_tokens:
+              type: integer
+            total_tokens:
+              type: integer
+
+    Model:
+      type: object
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+          enum: [model]
+        created:
+          type: integer
+        owned_by:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+            type:
+              type: string
+            code:
+              type: string
+
+security:
+  - BearerAuth: []
+  - ApiKeyHeader: []
+
+paths:
+  /models:
+    get:
+      operationId: listModels
+      summary: List available models
+      description: Returns all models currently pulled in Ollama.
+      responses:
+        '200':
+          description: List of models
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [list]
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Model'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /models/{model}:
+    get:
+      operationId: getModel
+      summary: Get a specific model
+      parameters:
+        - name: model
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Model object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Model'
+        '404':
+          description: Model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /chat/completions:
+    post:
+      operationId: createChatCompletion
+      summary: Create a chat completion
+      description: |
+        OpenAI-compatible chat completions endpoint.
+        Supports streaming (SSE) and non-streaming responses.
+        Tool/function calling is forwarded to Ollama when the model supports it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+            examples:
+              simple:
+                summary: Simple chat
+                value:
+                  model: qwen2.5-coder:3b
+                  messages:
+                    - role: user
+                      content: Write a Python function to reverse a string
+              streaming:
+                summary: Streaming chat
+                value:
+                  model: qwen2.5-coder:3b
+                  stream: true
+                  messages:
+                    - role: system
+                      content: You are a helpful coding assistant.
+                    - role: user
+                      content: Explain async/await in TypeScript
+      responses:
+        '200':
+          description: Chat completion response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletionResponse'
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  Server-Sent Events stream.
+                  Each line is: `data: <ChatCompletionChunk JSON>`
+                  Stream ends with: `data: [DONE]`
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

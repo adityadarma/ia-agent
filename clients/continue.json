@@ -1,0 +1,29 @@
+{
+  "models": [
+    {
+      "title": "AI Agent (gemma4:e4b)",
+      "provider": "openai",
+      "model": "gemma4:e4b",
+      "apiBase": "https://ai.adityadarma.dev/v1",
+      "apiKey": "ea549cb9630542bf93bd1a80f7e9bd24aee49cfdb963421d1bc3257ea8a51321",
+      "contextLength": 8192,
+      "completionOptions": {
+        "temperature": 0.3,
+        "maxTokens": 2048
+      }
+    }
+  ],
+  "tabAutocompleteModel": {
+    "title": "AI Agent Autocomplete",
+    "provider": "openai",
+    "model": "gemma4:e4b",
+    "apiBase": "https://ai.adityadarma.dev/v1",
+    "apiKey": "ea549cb9630542bf93bd1a80f7e9bd24aee49cfdb963421d1bc3257ea8a51321"
+  },
+  "embeddingsProvider": {
+    "provider": "openai",
+    "model": "gemma4:e4b",
+    "apiBase": "https://ai.adityadarma.dev/v1",
+    "apiKey": "ea549cb9630542bf93bd1a80f7e9bd24aee49cfdb963421d1bc3257ea8a51321"
+  }
+}

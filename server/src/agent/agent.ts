@@ -13,7 +13,7 @@ import {
 
 const MAX_STEPS = 3 // Increased for better task completion
 const LLM_TIMEOUT_MS = 120000 // 2 minutes for complex reasoning
-const MAX_CONTEXT_LENGTH = 2048 // Matched with LLM num_ctx
+const MAX_CONTEXT_LENGTH = 8192 // Matched with LLM num_ctx
 
 
 function trimContext(context: string): string {

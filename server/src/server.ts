@@ -1,10 +1,19 @@
-import express, { Request, Response, NextFunction } from 'express'
+import express, { Request, Response } from 'express'
 import cors from 'cors'
 import rateLimit from 'express-rate-limit'
+import { readFileSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
 // import timeout from 'connect-timeout'
 import { runAgentStream } from './agent/agent.js'
 import { apiKeyMiddleware } from './middleware/auth.js'
+import { bearerAuthMiddleware } from './middleware/bearerAuth.js'
+import { handleChatCompletions } from './openai/chatCompletions.js'
+import { handleListModels, handleGetModel } from './openai/models.js'
 import { recordRequest, getMetrics } from './monitoring/metrics.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 const limiter = rateLimit({
   windowMs: 60 * 1000,
@@ -13,7 +22,7 @@ const limiter = rateLimit({
 
 const app = express()
 
-// Trust the first proxy (required for rate limiting behind reverse proxies)
+// Trust reverse proxy (Nginx/Caddy) – required when X-Forwarded-For is set
 app.set('trust proxy', 1)
 
 if (!process.env.API_KEY) {
@@ -54,6 +63,28 @@ app.get('/metrics', apiKeyMiddleware, (_req: Request, res: Response) => {
 app.get('/', (_req: Request, res: Response) => {
   res.status(200).send('OK')
 })
+
+// ─── OpenAI-compatible API (v1) ──────────────────────────────────────────────
+
+// Serve OpenAPI spec
+app.get('/v1/openapi.yaml', (_req: Request, res: Response) => {
+  try {
+    const specPath = join(__dirname, '../openapi.yaml')
+    const content = readFileSync(specPath, 'utf-8')
+    res.setHeader('Content-Type', 'application/yaml')
+    res.send(content)
+  } catch {
+    res.status(404).json({ error: 'OpenAPI spec not found' })
+  }
+})
+
+// Models endpoints
+app.get('/v1/models', bearerAuthMiddleware, handleListModels)
+app.get('/v1/models/:model', bearerAuthMiddleware, handleGetModel)
+
+// Chat completions – the main OpenAI-compatible endpoint
+// Used by: Claude Code, OpenCode, Continue, Cursor, etc.
+app.post('/v1/chat/completions', bearerAuthMiddleware, handleChatCompletions)
 
 const PORT = parseInt(process.env.PORT || '3000', 10)
 
