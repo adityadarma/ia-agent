@@ -17,7 +17,7 @@ const __dirname = dirname(__filename)
 
 const limiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 20
+  max: parseInt(process.env.RATE_LIMIT_MAX || '120', 10)
 })
 
 const app = express()
@@ -31,7 +31,7 @@ if (!process.env.API_KEY) {
 }
 
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '10mb' }))
 app.use(limiter)
 // Apply apiKeyMiddleware only to specific routes, not globally
 // app.use(timeout('30s'))

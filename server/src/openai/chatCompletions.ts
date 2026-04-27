@@ -9,7 +9,7 @@ import {
 import { recordRequest, recordLLMCall } from '../monitoring/metrics.js'
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434'
-const DEFAULT_MODEL = 'gemma4:e4b'
+const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5-coder:3b'
 
 function generateId(): string {
   return 'chatcmpl-' + Math.random().toString(36).substring(2, 15)
@@ -18,15 +18,20 @@ function generateId(): string {
 function buildOllamaRequest(body: ChatCompletionRequest) {
   const model = body.model || DEFAULT_MODEL
 
+  // Support both max_tokens (OpenAI v1) and max_completion_tokens (OpenAI v2 / Claude Code)
+  const maxTokens = body.max_completion_tokens ?? body.max_tokens
+    ?? parseInt(process.env.OLLAMA_NUM_PREDICT || '2048', 10)
+
   const req: Record<string, unknown> = {
     model,
     messages: body.messages,
     options: {
       temperature: body.temperature ?? 0.3,
       top_p: body.top_p ?? 0.9,
-      num_predict: body.max_tokens ?? parseInt(process.env.OLLAMA_NUM_PREDICT || '2048', 10),
+      num_predict: maxTokens,
       num_ctx: parseInt(process.env.OLLAMA_CONTEXT_LENGTH || '4096', 10),
-      repeat_penalty: 1.1,
+      repeat_penalty: 1.1 + (body.presence_penalty ?? 0),
+      frequency_penalty: body.frequency_penalty ?? 0,
       num_thread: 4
     }
   }

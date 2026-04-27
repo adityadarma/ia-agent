@@ -3,7 +3,7 @@ import axios from 'axios'
 import { ModelObject } from './types.js'
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434'
-const DEFAULT_MODEL = 'gemma4:e4b'
+const DEFAULT_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5-coder:3b'
 
 export async function handleListModels(_req: Request, res: Response) {
   try {

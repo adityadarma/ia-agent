@@ -4,9 +4,29 @@
 # Base URL : https://ai.adityadarma.dev
 # ─────────────────────────────────────────────────────────────
 
-BASE="https://ai.adityadarma.dev"
-KEY="ea549cb9630542bf93bd1a80f7e9bd24aee49cfdb963421d1bc3257ea8a51321"
-MODEL="gemma4:e4b"
+# Auto-load variable from .env
+if [ -f .env ]; then
+  # Sourcing enviroment variables skipping comments
+  export $(grep -v '^#' .env | xargs)
+fi
+
+# Resolve docker binary (macOS Docker Desktop installs to /usr/local/bin)
+DOCKER_CMD=$(command -v docker || echo "/usr/local/bin/docker")
+
+BASE="http://localhost:3000"
+# Gunakan OLLAMA_MODEL dari .env jika ada, atau fallback ke qwen2.5-coder:3b
+MODEL="${OLLAMA_MODEL:-qwen2.5-coder:3b}"
+KEY="${API_KEY:-ea549cb9630542bf93bd1a80f7e9bd24aee49cfdb963421d1bc3257ea8a51321}"
+
+# ── Auto-pull model jika belum ada di lokal container ───────────
+echo "Checking if model '$MODEL' is installed..."
+if ! $DOCKER_CMD exec ollama ollama list | grep -q "$MODEL"; then
+  echo "Model '$MODEL' is not installed. Pulling it now... This might take a while."
+  $DOCKER_CMD exec ollama ollama pull "$MODEL"
+else
+  echo "Model '$MODEL' is ready."
+fi
+echo "─────────────────────────────────────────────────────────────"
 
 # ── pilih test yang ingin dijalankan ─────────────────────────
 TEST="${1:-chat}"   # default: chat
@@ -55,7 +75,7 @@ case "$TEST" in
         \"stream\": true,
         \"messages\": [
           {\"role\": \"system\", \"content\": \"You are a helpful coding assistant.\"},
-          {\"role\": \"user\",   \"content\": \"${2:-Jelaskan async/await di JavaScript}\"}
+          {\"role\": \"user\",   \"content\": \"${2:-Jelaskan async/await di JavaScript, dan bisakah kamu membuatkan saya program utuh}\"}
         ],
         \"max_tokens\": 512
       }" | while IFS= read -r line; do

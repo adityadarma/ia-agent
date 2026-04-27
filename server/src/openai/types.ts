@@ -32,6 +32,7 @@ export interface ChatCompletionRequest {
   stream?: boolean
   temperature?: number
   max_tokens?: number
+  max_completion_tokens?: number  // Claude Code / OpenAI v2 alias
   top_p?: number
   frequency_penalty?: number
   presence_penalty?: number
